@@ -1,0 +1,11 @@
+-v
+-I "$(DIR)/../resources/headers"
+-root org.black.jtranscribe.generated
+-runtime BridJ
+-direct
+
+-library rubberband "$(DIR)/../resources/headers/rubberband/rubberband-c.h"
+
+
+
+
