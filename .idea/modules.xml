@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/jTranscribe.iml" filepath="$PROJECT_DIR$/jTranscribe.iml" />
-      <module fileurl="file://$USER_HOME$/Téléchargements/toto/my-native-bindings.iml" filepath="$USER_HOME$/Téléchargements/toto/my-native-bindings.iml" />
     </modules>
   </component>
 </project>

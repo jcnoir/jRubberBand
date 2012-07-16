@@ -1,4 +1,3 @@
--v
 -I "$(DIR)/../resources/headers"
 -root org.black.jtranscribe.generated
 -runtime BridJ
