@@ -39,7 +39,15 @@ package org.black.jtranscribe.dsp.common;/*
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.sound.sampled.*;
+import javax.sound.sampled.AudioFileFormat;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.Line;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.Mixer;
+import javax.sound.sampled.SourceDataLine;
+import javax.sound.sampled.TargetDataLine;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -50,6 +58,7 @@ import java.nio.ByteOrder;
 public class AudioCommon {
     private static boolean DEBUG = false;
     private static final Logger log = LoggerFactory.getLogger(AudioCommon.class);
+    public static final int BYTE_PER_FLOAT = 2;
 
 
     public static void setDebug(boolean bDebug) {
@@ -286,18 +295,12 @@ public class AudioCommon {
         return line;
     }
 
-    private static ByteBuffer order(ByteBuffer buffer, AudioFormat audioFileFormat) {
-        return order(buffer, audioFileFormat.isBigEndian());
-    }
-
-    private static ByteBuffer order(ByteBuffer buffer, boolean bigEndian) {
+    private static ByteOrder getbyteorder(boolean bigEndian) {
         if (bigEndian) {
-            buffer.order(ByteOrder.BIG_ENDIAN);
+            return (ByteOrder.BIG_ENDIAN);
         } else {
-            buffer.order(ByteOrder.LITTLE_ENDIAN);
+            return (ByteOrder.LITTLE_ENDIAN);
         }
-
-        return buffer;
     }
 
 
@@ -375,7 +378,7 @@ public class AudioCommon {
         int floatCounter = 0;
 
         ByteBuffer byteBuffer = ByteBuffer.wrap(allSampleBytes);
-        byteBuffer = order(byteBuffer, format.isBigEndian());
+        byteBuffer.order(getbyteorder(format.isBigEndian()));
         interleavedFloats = new float[byteBuffer.capacity()];
 
         while (byteBuffer.hasRemaining()) {
@@ -395,7 +398,7 @@ public class AudioCommon {
         channels = format.getChannels();
 
         byteBuffer = ByteBuffer.allocate(floats[0].length);
-        byteBuffer = order(byteBuffer, format);
+        byteBuffer.order(getbyteorder(format.isBigEndian()));
 
         for (int channel = 0; channel < channels; channel++) {
             for (int sample = 0; sample < floats.length; sample++) {
@@ -431,7 +434,7 @@ public class AudioCommon {
     public static byte[] floatsToBytes(float[][] floats, AudioFormat format) {
 
         ByteBuffer byteBuffer = ByteBuffer.allocate(floats.length * floats[0].length * 2);
-        byteBuffer = order(byteBuffer, format.isBigEndian());
+        byteBuffer.order(getbyteorder(format.isBigEndian()));
 
         for (int sample = 0; sample < floats.length; sample++) {
 
@@ -444,8 +447,77 @@ public class AudioCommon {
         }
         return byteBuffer.array();
     }
+
+
+    public static byte[] getBytes(float[] samples, AudioFormat format) {
+
+        ByteBuffer byteBuffer;
+        byteBuffer = ByteBuffer.allocate(samples.length * BYTE_PER_FLOAT);
+        byteBuffer.order(getbyteorder(format.isBigEndian()));
+
+        for (float sample : samples) {
+            byteBuffer.putShort((short) sample);
+        }
+        byteBuffer.rewind();
+        return byteBuffer.array();
+    }
+
+    // For now only Stream format : PCM_SIGNED 44100.0 Hz, 16 bit, stereo, 4 bytes/frame, little-endian
+    public static float[] getFloats(byte[] bytes, AudioFormat format) {
+
+        float[] samples;
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        byteBuffer.order(getbyteorder(format.isBigEndian()));
+        samples = new float[bytes.length / BYTE_PER_FLOAT];
+
+        for (int index = 0; index < samples.length; index++) {
+
+            // TODO : read short (2 bytes) - must manage other sample size :  4 bytes ...
+            samples[index] = byteBuffer.getShort();
+        }
+        return samples;
+    }
+
+    public static byte[][] deinterleave(byte[] source, int channels) {
+        int nSample;
+        byte[][] target;
+
+        nSample = source.length / channels;
+        target = new byte[channels][nSample];
+
+        for (int channel = 0; channel < channels; channel++) {
+            for (int sample = 0, channelOffset = 0; sample < nSample; sample++, channelOffset += channels) {
+                target[channel][sample] = source[channel + channelOffset];
+            }
+        }
+        return target;
+    }
+
+    public static byte[] interleave(byte[][] source) {
+
+        byte[] target;
+        int position = 0;
+
+        target = new byte[source.length * source[0].length];
+
+        for (int sample = 0; sample < source[0].length; sample++) {
+            for (int channel = 0; channel < source.length; channel++) {
+                target[position++] = source[channel][sample];
+            }
+
+        }
+
+        return target;
+    }
+
+    public static float[][] prepareForRub(byte[] bytes, int channels) {
+
+        byte[][] deinterleavedBytes;
+        deinterleavedBytes = deinterleave(bytes, channels);
+        //TODO
+        return null;
+
+    }
 }
-
-
 /*** AudioCommon.java ***/
 

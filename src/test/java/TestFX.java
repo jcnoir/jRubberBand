@@ -14,9 +14,13 @@ import javax.sound.sampled.AudioInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.Random;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -96,15 +100,16 @@ public class TestFX {
 
         stream = music.getAudioInputStream();
 
+        log.debug("Stream format : {}", stream.getFormat());
+
         int nBytesRead = 0;
         int nExternalBufferSize = 128000;
         byte[] abData = new byte[nExternalBufferSize];
         while (nBytesRead != -1) {
             try {
                 nBytesRead = stream.read(abData, 0, abData.length);
-
+                log.debug("bytes read : {}", abData);
                 AudioCommon.bytesToFloats(abData, stream.getFormat());
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -114,49 +119,80 @@ public class TestFX {
 
     }
 
-    @Test
-    public void testIdentity() throws MediumNotSupportedException {
 
-        float[][] floats = {{0f, 0.1f, 0.3f, 0.4f}, {0.5f, 0.6f, 0.7f, 0.8f}};
+    @Test
+    public void testConversion() throws Exception {
+
+        //TODO : Make sure that values are integers only
+        float[] floats = {1f, 2f, 3f, 4f, 5f};
         byte[] bytes;
-        float[][] computedFloats;
+        float[] computedFloats;
         Music music;
         URL url;
         AudioInputStream stream;
-        int floatNumer = 4;
-        Random random = new Random(15697);
 
-//        floats = new float[2][floatNumer];
+        log.debug("Initial floats : {}", floats);
+        url = this.getClass().getResource("/sounds/grapevine.wav");
+        music = new Music(url);
+        stream = music.getAudioInputStream();
+        log.debug("Fake audio format used : " + stream.getFormat());
+        bytes = AudioCommon.getBytes(floats, stream.getFormat());
+        log.debug("Matching Bytes : {}", bytes);
+        computedFloats = AudioCommon.getFloats(bytes, stream.getFormat());
+        log.debug("Matching Floats : {}", computedFloats);
+        assertTrue(Arrays.equals(floats, computedFloats));
 
-        for (int c = 0; c < 2; c++) {
-            for (int i = 1; i < floatNumer; i++) {
-                floats[c][i] = (random.nextFloat() - random.nextFloat());
+    }
+
+    @Test
+    public void testDeInterleave() throws Exception {
+
+        byte[] source = {11, 21, 31, 12, 22, 32};
+        byte[][] expectedResult = {{11, 12}, {21, 22}, {31, 32}};
+        byte[][] result;
+
+        result = AudioCommon.deinterleave(source, 3);
+        log.debug("Deinterleaved samples : {} ", result);
+
+        for (int i = 0; i < expectedResult.length; i++) {
+
+            for (int j = 0; j < expectedResult[0].length; j++) {
+
+                assertTrue(expectedResult[i][j] == result[i][j]);
+
             }
 
         }
+    }
 
-        log.debug("Initial floats : {}", floats);
+    @Test
+    public void testInterleave() throws Exception {
 
-        url = this.getClass().getResource("/sounds/grapevine.wav");
-        music = new Music(url);
+        byte[] expectedResult = {11, 21, 31, 12, 22, 32};
+        byte[][] source = {{11, 12}, {21, 22}, {31, 32}};
+        byte[] result;
 
-        stream = music.getAudioInputStream();
+        result = AudioCommon.interleave(source);
+        log.debug("interleaved samples : {} ", result);
 
-
-        bytes = AudioCommon.floatsToBytes(floats, stream.getFormat());
-
-        log.debug("Matching Bytes : {}", bytes);
-
-
-        computedFloats = AudioCommon.bytesToFloats(bytes, stream.getFormat());
-
-        log.debug("Matching Floats : {}", computedFloats);
-
-
-        assertTrue(Arrays.equals(floats, computedFloats));
+        assertArrayEquals(expectedResult, result);
 
 
     }
 
+    @Test
+    public void testCycleInterleave() throws Exception {
 
+        byte[] source = {11, 21, 31, 12, 22, 32};
+        byte[][] deinterleavedSource;
+        byte[] result;
+
+        deinterleavedSource = AudioCommon.deinterleave(source, 3);
+        result = AudioCommon.interleave(deinterleavedSource);
+        log.debug("interleaved samples : {} ", result);
+
+        assertArrayEquals(source, result);
+
+
+    }
 }
