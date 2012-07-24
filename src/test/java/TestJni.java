@@ -1,5 +1,11 @@
+import org.black.jtranscribe.data.Music;
+import org.black.jtranscribe.dsp.fx.rubberband.RubberbandStretcher;
+import org.black.jtranscribe.dsp.player.MusicPLayer;
 import org.black.jtranscribe.generated.rubberband.RubberbandLibrary;
 import org.junit.Test;
+
+import javax.sound.sampled.AudioInputStream;
+import java.net.URL;
 
 
 /**
@@ -20,4 +26,22 @@ public class TestJni {
     }
 
 
+    @Test
+    public void testBAsicRubberBand() throws Exception {
+
+        Music music;
+        MusicPLayer dataPLayer;
+        URL url;
+        AudioInputStream stream;
+        byte[] bytes = new byte[512];
+
+        url = this.getClass().getResource("/sounds/grapevine.wav");
+        music = new Music(url);
+
+
+        RubberbandStretcher rubberbandStretcher = new RubberbandStretcher(music.getAudioInputStream());
+        music.getAudioInputStream().read(bytes);
+        rubberbandStretcher.process(bytes, true);
+
+    }
 }

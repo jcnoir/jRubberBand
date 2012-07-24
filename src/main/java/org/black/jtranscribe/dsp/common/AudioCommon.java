@@ -39,15 +39,7 @@ package org.black.jtranscribe.dsp.common;/*
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.sound.sampled.AudioFileFormat;
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.Line;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.Mixer;
-import javax.sound.sampled.SourceDataLine;
-import javax.sound.sampled.TargetDataLine;
+import javax.sound.sampled.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -510,12 +502,35 @@ public class AudioCommon {
         return target;
     }
 
-    public static float[][] prepareForRub(byte[] bytes, int channels) {
+    public static float[][] convertBeforeFx(byte[] bytes, AudioFormat format) {
 
-        byte[][] deinterleavedBytes;
-        deinterleavedBytes = deinterleave(bytes, channels);
-        //TODO
-        return null;
+        byte[][] byteChannels;
+        float[][] floatChannels;
+
+        byteChannels = deinterleave(bytes, format.getChannels());
+        floatChannels = new float[byteChannels.length][byteChannels[0].length / BYTE_PER_FLOAT];
+
+        for (int channel = 0; channel < format.getChannels(); channel++) {
+            floatChannels[channel] = getFloats(byteChannels[channel], format);
+        }
+
+        return floatChannels;
+
+    }
+
+    public static byte[] convertAfterFx(float[][] floatChannels, AudioFormat format) {
+
+        byte[][] byteChannels;
+        byte[] interleavedChannels;
+        byteChannels = new byte[floatChannels.length][floatChannels[0].length * BYTE_PER_FLOAT];
+
+        for (int channel = 0; channel < floatChannels.length; channel++) {
+            byteChannels[channel] = getBytes(floatChannels[channel], format);
+
+        }
+        interleavedChannels = AudioCommon.interleave(byteChannels);
+
+        return interleavedChannels;
 
     }
 }

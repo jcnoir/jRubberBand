@@ -1,24 +1,22 @@
 import org.black.jtranscribe.data.Music;
-import org.black.jtranscribe.dsp.common.AudioCommon;
-import org.black.jtranscribe.dsp.common.MusicConsumer;
-import org.black.jtranscribe.dsp.common.MusicFx;
-import org.black.jtranscribe.dsp.common.MusicProvider;
-import org.black.jtranscribe.dsp.fx.rubberband.FX;
+import org.black.jtranscribe.dsp.common.*;
+import org.black.jtranscribe.dsp.fx.rubberband.RubberbandStretcher;
+import org.black.jtranscribe.dsp.fx.tarsos.MonoConverter;
+import org.black.jtranscribe.dsp.fx.tarsos.TarsosStretcher;
 import org.black.jtranscribe.dsp.player.MusicPLayer;
 import org.black.jtranscribe.exceptions.MediumNotSupportedException;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
@@ -34,7 +32,7 @@ public class TestFX {
     @Test
     public void testFX() throws MediumNotSupportedException, ExecutionException, InterruptedException {
 
-        final MusicFx musicFx;
+        final Stretcher stretcher;
         final MusicConsumer musicConsumer;
         final URL url;
         ThreadPoolExecutor threadPoolExecutor;
@@ -48,17 +46,17 @@ public class TestFX {
                         TimeUnit.MILLISECONDS,
                         new SynchronousQueue<Runnable>());
 
-        musicFx = new FX();
         musicConsumer = new MusicPLayer();
         url = this.getClass().getResource("/sounds/grapevine.wav");
         final MusicProvider musicProvider = new Music(url);
+        stretcher = new RubberbandStretcher(musicProvider.getMusic());
 
 
         futureMusic = pool.submit(new Runnable() {
             @Override
             public void run() {
-                musicFx.listen(musicProvider);
-                musicConsumer.listen(musicFx);
+                stretcher.listen(musicProvider);
+                musicConsumer.listen(stretcher);
                 try {
                     Thread.sleep(5000);
                 } catch (InterruptedException e) {
@@ -76,9 +74,120 @@ public class TestFX {
                 } catch (InterruptedException e) {
                     e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
                 }
-                //musicFx.getPitch();
-                //musicFx.setPitch(2);
-                //musicFx.setSpeed(2);
+                //stretcher.getPitch();
+                //stretcher.setPitch(2);
+                //stretcher.setSpeed(2);
+
+            }
+        });
+        futureMusic.get();
+        pool.shutdown();
+
+
+    }
+
+    @Test
+    public void testTarsosFX() throws MediumNotSupportedException, ExecutionException, InterruptedException, MalformedURLException {
+
+        final Stretcher stretcher;
+        final URL url;
+        ThreadPoolExecutor threadPoolExecutor;
+        Future futureMusic;
+
+
+        ThreadPoolExecutor pool =
+                new ThreadPoolExecutor(10,
+                        10,
+                        500,
+                        TimeUnit.MILLISECONDS,
+                        new SynchronousQueue<Runnable>());
+
+        url = new File("/home/jcnoir/Bureau/grapevine-mono.wav").toURI().toURL();
+        final MusicProvider musicProvider = new Music(url);
+        stretcher = new TarsosStretcher();
+
+
+        futureMusic = pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                stretcher.listen(musicProvider);
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                }
+
+            }
+        });
+
+        pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                }
+                //stretcher.getPitch();
+                //stretcher.setPitch(2);
+                //stretcher.setSpeed(2);
+
+            }
+        });
+        futureMusic.get();
+        pool.shutdown();
+
+
+    }
+
+    @Test
+    public void testTarsosMonoFX() throws MediumNotSupportedException, ExecutionException, InterruptedException, MalformedURLException {
+
+        final Stretcher stretcher;
+        final URL url;
+        ThreadPoolExecutor threadPoolExecutor;
+        Future futureMusic;
+
+
+        ThreadPoolExecutor pool =
+                new ThreadPoolExecutor(10,
+                        10,
+                        500,
+                        TimeUnit.MILLISECONDS,
+                        new SynchronousQueue<Runnable>());
+
+        url = this.getClass().getResource("/sounds/grapevine.wav");
+        final MusicProvider musicProvider = new Music(url);
+        final MusicFX monoConverter = new MonoConverter();
+        stretcher = new TarsosStretcher();
+
+
+        futureMusic = pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                monoConverter.listen(musicProvider);
+                stretcher.listen(monoConverter);
+
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                }
+
+            }
+        });
+
+        pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                }
+                //stretcher.getPitch();
+                //stretcher.setPitch(2);
+                //stretcher.setSpeed(2);
 
             }
         });
@@ -187,12 +296,38 @@ public class TestFX {
         byte[][] deinterleavedSource;
         byte[] result;
 
+        log.debug("Source channels bytes : {}", source);
         deinterleavedSource = AudioCommon.deinterleave(source, 3);
+        log.debug("Deinterleaved Source channels bytes : {}", deinterleavedSource);
         result = AudioCommon.interleave(deinterleavedSource);
         log.debug("interleaved samples : {} ", result);
 
         assertArrayEquals(source, result);
+    }
 
+    @Test
+    public void testPrepareFx() throws Exception {
+        byte[] source = {011, 012, 111, 112, 021, 022, 111, 112};
+        float[][] channels;
+        byte[] computedBytes;
 
+        log.debug("Source channels bytes : {}", source);
+        channels = AudioCommon.convertBeforeFx(source, getTestAudioFormat());
+        log.debug("deinterleaved channels floats : {}", channels);
+        computedBytes = AudioCommon.convertAfterFx(channels, getTestAudioFormat());
+        log.debug("Re-interleaved channels bytes : {}", source);
+        assertArrayEquals(source, computedBytes);
+
+    }
+
+    private AudioFormat getTestAudioFormat() throws MediumNotSupportedException {
+        Music music;
+        URL url;
+        AudioInputStream stream;
+
+        url = this.getClass().getResource("/sounds/grapevine.wav");
+        music = new Music(url);
+        stream = music.getAudioInputStream();
+        return stream.getFormat();
     }
 }

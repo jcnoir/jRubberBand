@@ -1,7 +1,7 @@
 package org.black.jtranscribe.dsp.fx.rubberband;
 
 import org.black.jtranscribe.dsp.common.AudioCommon;
-import org.black.jtranscribe.dsp.common.MusicFx;
+import org.black.jtranscribe.dsp.common.Stretcher;
 import org.black.jtranscribe.dsp.common.MusicProvider;
 import org.black.jtranscribe.dsp.fx.AudioInputStreamProxy;
 import org.black.jtranscribe.generated.rubberband.RubberbandLibrary;
@@ -18,9 +18,9 @@ import static org.bridj.Pointer.pointerToFloats;
  * User: jcnoir
  * Date: 15/07/12
  */
-public class FX implements MusicFx {
+public class RubberbandStretcher implements Stretcher {
 
-    private static final Logger log = LoggerFactory.getLogger(MusicFx.class);
+    private static final Logger log = LoggerFactory.getLogger(Stretcher.class);
 
     RubberbandLibrary.RubberBandState state;
 
@@ -29,7 +29,9 @@ public class FX implements MusicFx {
 
     @Override
     public void listen(MusicProvider data) {
-        this.inputStream = new AudioInputStreamProxy(data.getMusic());
+        this.inputStream = new AudioInputStreamProxy(data.getMusic(), this);
+//        this.initRubberBand(this.inputStream);
+
 
     }
 
@@ -66,7 +68,7 @@ public class FX implements MusicFx {
         int lastSample;
 
         lastSample = last ? 1 : 0;
-        samples = AudioCommon.bytesToFloats(bytes, this.getMusic().getFormat());
+        samples = AudioCommon.convertBeforeFx(bytes, this.getMusic().getFormat());
         floatPointers = pointerToFloats(samples);
         RubberbandLibrary.rubberband_process(state, floatPointers, samples[0].length, lastSample);
 
@@ -75,7 +77,7 @@ public class FX implements MusicFx {
 
     private float[][] convertBytesToFloats(byte[] bytes) {
 
-        return AudioCommon.bytesToFloats(bytes, this.getMusic().getFormat());
+        return AudioCommon.convertBeforeFx(bytes, this.inputStream.getFormat());
 
     }
 
@@ -86,20 +88,50 @@ public class FX implements MusicFx {
 
     public byte[] retrieve(int samples, int channelNumber) {
 
-        int effectiveFrames = 0;
+        float[][] floats;
+        byte[] bytes;
+
         Pointer<Pointer<Float>> allChannels = allocateFloats(channelNumber, samples);
         RubberbandLibrary.rubberband_retrieve(state, allChannels, samples);
-        return new byte[0];
+        floats = getfloats(allChannels);
+        bytes = AudioCommon.convertAfterFx(floats, inputStream.getFormat());
+        return bytes;
 
     }
 
+    private float[][] getfloats(Pointer<Pointer<Float>> floatsPointer) {
 
-    public FX() {
+        int channelIndex = 0;
+        float[][] floatSamples = null;
+
+
+        Pointer<Float>[] channels = floatsPointer.toArray();
+        for (Pointer<Float> channel : channels) {
+
+            float[] floatChannel;
+            floatChannel = channel.getFloats();
+
+            if (floatSamples == null) {
+                floatSamples = new float[channels.length][floatChannel.length];
+            }
+
+            floatSamples[channelIndex] = floatChannel;
+        }
+
+        return floatSamples;
     }
 
-    public void initRubberBand(AudioInputStream stream) {
 
-        this.state = RubberbandLibrary.rubberband_new(Float.floatToIntBits(stream.getFormat().getSampleRate()), stream.getFormat().getChannels(), (int) RubberbandLibrary.RubberBandOption.RubberBandOptionProcessRealTime.value, 1.0, 1.0);
+    public RubberbandStretcher(AudioInputStream stream) {
+
+        this((int) (stream.getFormat().getSampleRate()), stream.getFormat().getChannels(), (int) RubberbandLibrary.RubberBandOption.RubberBandOptionProcessRealTime.value, 1.0, 1.0);
+        this.inputStream = stream;
+
+    }
+
+    public RubberbandStretcher(int sampleRate, int channels, int options, double timeScale, double pitchScale) {
+
+        this.state = RubberbandLibrary.rubberband_new(sampleRate, channels, options, timeScale, pitchScale);
 
 
     }

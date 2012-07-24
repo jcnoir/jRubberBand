@@ -35,6 +35,11 @@
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
     </dependency>
+      <!--<dependency>-->
+          <!--<groupId>TarsosDSP</groupId>-->
+          <!--<artifactId>TarsosDSP</artifactId>-->
+          <!--<version>1.2</version>-->
+      <!--</dependency>-->
   </dependencies>
   <build>
     <plugins>

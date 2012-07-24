@@ -4,7 +4,7 @@ package org.black.jtranscribe.dsp.common;
  * User: jcnoir
  * Date: 15/07/12
  */
-public interface MusicFx extends MusicConsumer, MusicProvider {
+public interface Stretcher extends MusicFX {
 
     public double getSpeed();
 
