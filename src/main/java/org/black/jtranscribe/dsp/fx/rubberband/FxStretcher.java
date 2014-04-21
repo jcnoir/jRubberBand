@@ -49,7 +49,21 @@ public class FxStretcher implements Stretcher {
             this.pipedInputStream = new PipedInputStream();
             this.pipedOutputStream = new PipedOutputStream(pipedInputStream);
             this.fxInputStream = new AudioInputStream(pipedInputStream, originalInputStream.getFormat(), originalInputStream.getFrameLength() * 10);
-            this.rubberBand = new RubberBandStretcher((int) originalInputStream.getFormat().getSampleRate(), originalInputStream.getFormat().getChannels(), RubberBandStretcher.OptionDetectorCompound | RubberBandStretcher.OptionProcessRealTime, 1, 1);
+            this.rubberBand = new RubberBandStretcher((int) originalInputStream.getFormat().getSampleRate(), originalInputStream.getFormat().getChannels(),
+                    RubberBandStretcher.OptionProcessRealTime |
+                            RubberBandStretcher.OptionStretchPrecise |
+                            RubberBandStretcher.OptionTransientsCrisp |
+                            RubberBandStretcher.OptionDetectorCompound |
+                            RubberBandStretcher.OptionPhaseLaminar |
+                            RubberBandStretcher.OptionThreadingAuto |
+                            RubberBandStretcher.OptionWindowStandard |
+                            RubberBandStretcher.OptionSmoothingOff |
+                            RubberBandStretcher.OptionFormantShifted |
+                            RubberBandStretcher.OptionPitchHighQuality |
+                            RubberBandStretcher.OptionChannelsApart
+                    , 1, 1
+            );
+            rubberBand.reset();
             process();
         } catch (IOException e) {
             log.error("Listen failure : {}", e);
@@ -89,7 +103,7 @@ public class FxStretcher implements Stretcher {
         log.debug("Processing " + size + " interleaved bytes (last=" + last + ", offset=" + offset + ")");
         bytes = Arrays.copyOfRange(bytes, offset, size);
         samples = AudioCommon.convertBeforeFx(bytes, this.getMusic().getFormat());
-        bytesPerSample = bytes.length / samples[0].length;
+        bytesPerSample = originalInputStream.getFormat().getFrameSize();
         log.debug(bytesPerSample + " bytes per sample detected");
         log.debug("Processing " + samples[0].length + " samples on " + samples.length + " channels " + "(last=" + last + ", offset=" + offset / bytesPerSample + ")");
         log.debug("Rubberband channels={}", rubberBand.getChannelCount());
@@ -110,9 +124,10 @@ public class FxStretcher implements Stretcher {
     public byte[] retrieve(int channelNumber, int offset, int length) {
 
         byte[] bytes;
+        int actualRetrieved;
         float[][] floats = new float[channelNumber][length];
-        rubberBand.retrieve(floats, offset, length);
-        bytes = AudioCommon.convertAfterFx(floats, originalInputStream.getFormat());
+        actualRetrieved = rubberBand.retrieve(floats, offset, length);
+        bytes = AudioCommon.convertAfterFx((floats), originalInputStream.getFormat(), actualRetrieved);
         return bytes;
 
     }
@@ -122,7 +137,7 @@ public class FxStretcher implements Stretcher {
         executorService.submit(new Runnable() {
             @Override
             public void run() {
-                byte[] originalStreamBuffer = new byte[10000 * originalInputStream.getFormat().getFrameSize()];
+                byte[] originalStreamBuffer = new byte[4 * 1000 * originalInputStream.getFormat().getFrameSize()];
                 byte[] processedBytes;
                 int read;
                 int requiredSamples;
@@ -135,6 +150,7 @@ public class FxStretcher implements Stretcher {
                         process(originalStreamBuffer, false, 0, read);
                         processedBytes = retrieve(originalInputStream.getFormat().getChannels(), 0, available());
                         pipedOutputStream.write(processedBytes);
+                        pipedOutputStream.flush();
                     }
                 } catch (Exception ex) {
                     log.error("Music stream read failure", ex);

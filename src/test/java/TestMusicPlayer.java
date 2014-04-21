@@ -68,7 +68,7 @@ public class TestMusicPlayer {
     }
 
     @Test
-    public void playLocalWavWithFX() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
+    public void playLocalWavWithSpeed() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
 
         Music music;
         MusicPLayer dataPLayer;
@@ -76,12 +76,34 @@ public class TestMusicPlayer {
         FxStretcher fxStretcher;
 
 
-        url = this.getClass().getResource("/sounds/grapevine.wav");
-        //url = new File("/media/donnees/musiques/processed/original/sedentaire/flac/Karl Frierson - Soulprint/03 - Freaklife.flac").toURL();
+       // url = this.getClass().getResource("/sounds/grapevine.wav");
+        url = new File("/home/jcnoir/Téléchargements/Karl Frierson - Walkin In New York.new.wav").toURL();
         music = new Music(url);
         fxStretcher = new FxStretcher(music);
-        fxStretcher.setSpeed(2);
+        fxStretcher.setSpeed(0.9);
         fxStretcher.setPitch(1);
+
+        dataPLayer = new MusicPLayer();
+        dataPLayer.listen(fxStretcher);
+
+        fxStretcher.exit();
+    }
+
+    @Test
+    public void playLocalWavWithPitch() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
+
+        Music music;
+        MusicPLayer dataPLayer;
+        URL url;
+        FxStretcher fxStretcher;
+
+
+        //url = this.getClass().getResource("/sounds/grapevine.wav");
+        url = new File("/home/jcnoir/Téléchargements/Karl Frierson - Walkin In New York.new.wav").toURL();
+        music = new Music(url);
+        fxStretcher = new FxStretcher(music);
+        fxStretcher.setSpeed(1);
+        fxStretcher.setPitch(1.2);
 
         dataPLayer = new MusicPLayer();
         dataPLayer.listen(fxStretcher);

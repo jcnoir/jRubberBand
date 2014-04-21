@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import javax.sound.sampled.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 
 /**
@@ -508,7 +509,7 @@ public class AudioCommon {
         float[][] floatChannels;
 
         byteChannels = deinterleave(bytes, format.getChannels());
-        floatChannels = new float[byteChannels.length][byteChannels[0].length / BYTE_PER_FLOAT];
+        floatChannels = new float[byteChannels.length][byteChannels[0].length / (format.getSampleSizeInBits() / 8)];
 
         for (int channel = 0; channel < format.getChannels(); channel++) {
             floatChannels[channel] = getFloats(byteChannels[channel], format);
@@ -518,14 +519,14 @@ public class AudioCommon {
 
     }
 
-    public static byte[] convertAfterFx(float[][] floatChannels, AudioFormat format) {
+    public static byte[] convertAfterFx(float[][] floatChannels, AudioFormat format, int actualRetrieved) {
 
         byte[][] byteChannels;
         byte[] interleavedChannels;
-        byteChannels = new byte[floatChannels.length][floatChannels[0].length * BYTE_PER_FLOAT];
+        byteChannels = new byte[floatChannels.length][actualRetrieved * (format.getSampleSizeInBits() / 8)];
 
         for (int channel = 0; channel < floatChannels.length; channel++) {
-            byteChannels[channel] = getBytes(floatChannels[channel], format);
+            byteChannels[channel] = getBytes(Arrays.copyOf(floatChannels[channel], actualRetrieved), format);
 
         }
         interleavedChannels = AudioCommon.interleave(byteChannels);
