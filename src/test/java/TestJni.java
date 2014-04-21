@@ -1,7 +1,7 @@
+import com.breakfastquay.rubberband.RubberBandStretcher;
 import org.black.jtranscribe.data.Music;
-import org.black.jtranscribe.dsp.fx.rubberband.RubberbandStretcher;
+import org.black.jtranscribe.dsp.fx.rubberband.FxStretcher;
 import org.black.jtranscribe.dsp.player.MusicPLayer;
-import org.black.jtranscribe.generated.rubberband.RubberbandLibrary;
 import org.junit.Test;
 
 import javax.sound.sampled.AudioInputStream;
@@ -16,13 +16,12 @@ public class TestJni {
 
 
     @Test
-    public void test_bridj_c() {
+    public void testNativeLibInit() {
 
-        RubberbandLibrary.RubberBandState state;
-        state = RubberbandLibrary.rubberband_new(44100, 2, 0, 1.0, 1.0);
+        RubberBandStretcher rubberBand = new RubberBandStretcher(44100, 2, 0, 1.0, 1.0);
         System.out.println("INIT done !");
-        RubberbandLibrary.rubberband_reset(state);
-        System.out.println("Available ? : " + RubberbandLibrary.rubberband_available(state));
+        rubberBand.reset();
+        System.out.println("Available ? : " + rubberBand.available());
     }
 
 
@@ -39,9 +38,27 @@ public class TestJni {
         music = new Music(url);
 
 
-        RubberbandStretcher rubberbandStretcher = new RubberbandStretcher(music.getAudioInputStream());
+        FxStretcher rubberbandStretcher = new FxStretcher(music.getAudioInputStream());
         music.getAudioInputStream().read(bytes);
-        rubberbandStretcher.process(bytes, true);
+        rubberbandStretcher.process(bytes, true, 0, bytes.length);
+
+    }
+
+    @Test
+    public void testJNI() throws Exception {
+
+        Music music;
+        MusicPLayer dataPLayer;
+        URL url;
+        AudioInputStream stream;
+        byte[] bytes = new byte[512];
+
+        url = this.getClass().getResource("/sounds/grapevine.wav");
+        music = new Music(url);
+
+        FxStretcher rubberbandStretcher = new FxStretcher(44100, 2, 0, 1, 1);
+        rubberbandStretcher.listen(music);
+
 
     }
 }

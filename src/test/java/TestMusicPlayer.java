@@ -1,4 +1,5 @@
 import org.black.jtranscribe.data.Music;
+import org.black.jtranscribe.dsp.fx.rubberband.FxStretcher;
 import org.black.jtranscribe.dsp.player.MusicPLayer;
 import org.black.jtranscribe.exceptions.MediumNotSupportedException;
 import org.junit.Test;
@@ -38,6 +39,26 @@ public class TestMusicPlayer {
         musicPLayer = new MusicPLayer();
         musicPLayer.listen(music);
     }
+    @Test
+    public void playLocalWavWithFX() throws MalformedURLException, MediumNotSupportedException {
+
+        Music music;
+        MusicPLayer dataPLayer;
+        URL url;
+        FxStretcher fxStretcher;
+
+
+        url = this.getClass().getResource("/sounds/grapevine.wav");
+        music = new Music(url);
+        fxStretcher = new FxStretcher(music.getAudioInputStream());
+        fxStretcher.setSpeed(1);
+        fxStretcher.setPitch(1);
+
+        dataPLayer = new MusicPLayer();
+        dataPLayer.listen(fxStretcher);
+    }
+
+
 
 
 }
