@@ -38,7 +38,7 @@ public class TestJni {
         music = new Music(url);
 
 
-        FxStretcher rubberbandStretcher = new FxStretcher(music.getAudioInputStream());
+        FxStretcher rubberbandStretcher = new FxStretcher(music);
         music.getAudioInputStream().read(bytes);
         rubberbandStretcher.process(bytes, true, 0, bytes.length);
 
@@ -56,7 +56,7 @@ public class TestJni {
         url = this.getClass().getResource("/sounds/grapevine.wav");
         music = new Music(url);
 
-        FxStretcher rubberbandStretcher = new FxStretcher(44100, 2, 0, 1, 1);
+        FxStretcher rubberbandStretcher = new FxStretcher();
         rubberbandStretcher.listen(music);
 
 
