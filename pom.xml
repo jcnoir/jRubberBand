@@ -58,6 +58,15 @@
             <artifactId>jflac-codec</artifactId>
             <version>1.4.0-SNAPSHOT</version>
         </dependency>
+        <!-- For AAC files
+        <dependency>
+            <groupId>jaad</groupId>
+            <artifactId>jaad</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/jaad-0.8.4.jar</systemPath>
+        </dependency>
+        -->
     </dependencies>
     <build>
         <plugins>
