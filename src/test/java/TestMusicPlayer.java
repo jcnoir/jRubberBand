@@ -76,11 +76,11 @@ public class TestMusicPlayer {
         FxStretcher fxStretcher;
 
 
-       // url = this.getClass().getResource("/sounds/grapevine.wav");
-        url = new File("/home/jcnoir/Téléchargements/Karl Frierson - Walkin In New York.new.wav").toURL();
+        url = this.getClass().getResource("/sounds/grapevine.wav");
+        //url = new File("/home/jcnoir/Téléchargements/Karl Frierson - Walkin In New York.wav").toURL();
         music = new Music(url);
         fxStretcher = new FxStretcher(music);
-        fxStretcher.setSpeed(0.9);
+        fxStretcher.setSpeed(1.1);
         fxStretcher.setPitch(1);
 
         dataPLayer = new MusicPLayer();
@@ -98,12 +98,12 @@ public class TestMusicPlayer {
         FxStretcher fxStretcher;
 
 
-        //url = this.getClass().getResource("/sounds/grapevine.wav");
-        url = new File("/home/jcnoir/Téléchargements/Karl Frierson - Walkin In New York.new.wav").toURL();
+        url = this.getClass().getResource("/sounds/grapevine.wav");
+        //url = new File("/home/jcnoir/Téléchargements/Karl Frierson - Walkin In New York.wav").toURL();
         music = new Music(url);
         fxStretcher = new FxStretcher(music);
         fxStretcher.setSpeed(1);
-        fxStretcher.setPitch(1.2);
+        fxStretcher.setPitch(0.8);
 
         dataPLayer = new MusicPLayer();
         dataPLayer.listen(fxStretcher);

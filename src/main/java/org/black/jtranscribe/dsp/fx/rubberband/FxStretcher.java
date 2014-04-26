@@ -52,15 +52,15 @@ public class FxStretcher implements Stretcher {
             this.rubberBand = new RubberBandStretcher((int) originalInputStream.getFormat().getSampleRate(), originalInputStream.getFormat().getChannels(),
                     RubberBandStretcher.OptionProcessRealTime |
                             RubberBandStretcher.OptionStretchPrecise |
-                            RubberBandStretcher.OptionTransientsCrisp |
+                            RubberBandStretcher.OptionTransientsSmooth |
                             RubberBandStretcher.OptionDetectorCompound |
                             RubberBandStretcher.OptionPhaseLaminar |
                             RubberBandStretcher.OptionThreadingAuto |
                             RubberBandStretcher.OptionWindowStandard |
-                            RubberBandStretcher.OptionSmoothingOff |
+                            RubberBandStretcher.OptionSmoothingOn |
                             RubberBandStretcher.OptionFormantShifted |
                             RubberBandStretcher.OptionPitchHighQuality |
-                            RubberBandStretcher.OptionChannelsApart
+                            RubberBandStretcher.OptionChannelsTogether
                     , 1, 1
             );
             rubberBand.reset();
@@ -127,7 +127,9 @@ public class FxStretcher implements Stretcher {
         int actualRetrieved;
         float[][] floats = new float[channelNumber][length];
         actualRetrieved = rubberBand.retrieve(floats, offset, length);
-        bytes = AudioCommon.convertAfterFx((floats), originalInputStream.getFormat(), actualRetrieved);
+        log.debug(actualRetrieved + " samples retrieved from rubberband");
+        bytes = AudioCommon.convertAfterFx(floats, originalInputStream.getFormat(), actualRetrieved);
+        log.debug(bytes.length + " bytes after conversion retrieved from rubberband, matching bytes per sample=" + (actualRetrieved != 0 ? bytes.length / (actualRetrieved * originalInputStream.getFormat().getChannels()) : 0));
         return bytes;
 
     }
@@ -137,17 +139,18 @@ public class FxStretcher implements Stretcher {
         executorService.submit(new Runnable() {
             @Override
             public void run() {
-                byte[] originalStreamBuffer = new byte[4 * 1000 * originalInputStream.getFormat().getFrameSize()];
+                byte[] originalStreamBuffer = new byte[rubberBand.getSamplesRequired() * originalInputStream.getFormat().getFrameSize()];
                 byte[] processedBytes;
                 int read;
-                int requiredSamples;
+                int requiredSamples = rubberBand.getSamplesRequired();
 
                 try {
+                    log.debug("Processing audio : originalStreamBuffer=" + originalStreamBuffer.length + ", requiredSamples=" + requiredSamples);
                     while ((read = originalInputStream.read(originalStreamBuffer, 0, (requiredSamples = rubberBand.getSamplesRequired()) * originalInputStream.getFormat().getFrameSize()) + 1) > 0) {
                         log.debug("Rubberband required samples={}", requiredSamples);
                         log.debug("{} bytes have been read from original stream", read);
                         log.info("Processing data with speed={}, pitch={}", rubberBand.getTimeRatio(), rubberBand.getPitchScale());
-                        process(originalStreamBuffer, false, 0, read);
+                        process(originalStreamBuffer, originalInputStream.available() < 1, 0, read);
                         processedBytes = retrieve(originalInputStream.getFormat().getChannels(), 0, available());
                         pipedOutputStream.write(processedBytes);
                         pipedOutputStream.flush();

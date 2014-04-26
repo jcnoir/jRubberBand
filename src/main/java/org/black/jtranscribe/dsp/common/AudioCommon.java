@@ -448,6 +448,7 @@ public class AudioCommon {
         byteBuffer = ByteBuffer.allocate(samples.length * BYTE_PER_FLOAT);
         byteBuffer.order(getbyteorder(format.isBigEndian()));
 
+
         for (float sample : samples) {
             byteBuffer.putShort((short) sample);
         }
@@ -461,6 +462,7 @@ public class AudioCommon {
         float[] samples;
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         byteBuffer.order(getbyteorder(format.isBigEndian()));
+
         samples = new float[bytes.length / BYTE_PER_FLOAT];
 
         for (int index = 0; index < samples.length; index++) {
@@ -503,35 +505,55 @@ public class AudioCommon {
         return target;
     }
 
+    /**
+     * public static float[][] convertBeforeFx(byte[] bytes, AudioFormat format) {
+     * <p>
+     * byte[][] byteChannels;
+     * float[][] floatChannels;
+     * <p>
+     * byteChannels = deinterleave(bytes, format.getChannels());
+     * floatChannels = new float[byteChannels.length][byteChannels[0].length / (format.getSampleSizeInBits() / 8)];
+     * <p>
+     * for (int channel = 0; channel < format.getChannels(); channel++) {
+     * floatChannels[channel] = getFloats(byteChannels[channel], format);
+     * }
+     * <p>
+     * return floatChannels;
+     * <p>
+     * }
+     * <p>
+     * public static byte[] convertAfterFx(float[][] floatChannels, AudioFormat format, int actualRetrieved) {
+     * <p>
+     * byte[][] byteChannels;
+     * byte[] interleavedChannels;
+     * byteChannels = new byte[floatChannels.length][actualRetrieved * (format.getSampleSizeInBits() / 8)];
+     * <p>
+     * for (int channel = 0; channel < floatChannels.length; channel++) {
+     * byteChannels[channel] = getBytes(Arrays.copyOf(floatChannels[channel], actualRetrieved), format);
+     * <p>
+     * }
+     * <p>
+     * interleavedChannels = AudioCommon.interleave(byteChannels);
+     * <p>
+     * return interleavedChannels;
+     * <p>
+     * }
+     */
+
     public static float[][] convertBeforeFx(byte[] bytes, AudioFormat format) {
 
-        byte[][] byteChannels;
-        float[][] floatChannels;
 
-        byteChannels = deinterleave(bytes, format.getChannels());
-        floatChannels = new float[byteChannels.length][byteChannels[0].length / (format.getSampleSizeInBits() / 8)];
-
-        for (int channel = 0; channel < format.getChannels(); channel++) {
-            floatChannels[channel] = getFloats(byteChannels[channel], format);
-        }
-
-        return floatChannels;
+        float[] interleavedFloats = Sound.byteToFloatArray(bytes, bytes.length);
+        float[][] floats = Sound.stereoToMono(interleavedFloats, interleavedFloats.length);
+        return floats;
 
     }
 
     public static byte[] convertAfterFx(float[][] floatChannels, AudioFormat format, int actualRetrieved) {
 
-        byte[][] byteChannels;
-        byte[] interleavedChannels;
-        byteChannels = new byte[floatChannels.length][actualRetrieved * (format.getSampleSizeInBits() / 8)];
+        float[] interleavedFloats = Sound.monoToStereo(Arrays.copyOf(floatChannels[0], actualRetrieved), Arrays.copyOf(floatChannels[1], actualRetrieved), actualRetrieved);
+        return Sound.floatToByteArray(interleavedFloats, interleavedFloats.length);
 
-        for (int channel = 0; channel < floatChannels.length; channel++) {
-            byteChannels[channel] = getBytes(Arrays.copyOf(floatChannels[channel], actualRetrieved), format);
-
-        }
-        interleavedChannels = AudioCommon.interleave(byteChannels);
-
-        return interleavedChannels;
 
     }
 }
