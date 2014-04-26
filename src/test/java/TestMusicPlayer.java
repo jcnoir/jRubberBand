@@ -17,47 +17,54 @@ import java.net.URL;
  */
 public class TestMusicPlayer {
     private static final Logger log = LoggerFactory.getLogger(Stretcher.class);
+    private final Music streamingMusic;
+    private Music flacMusic;
+    private Music mp3Music;
+    private Music wavMusic;
+    private Music oggMusic;
+    private MusicPLayer dataPLayer;
+
+
+    public TestMusicPlayer() throws MalformedURLException, MediumNotSupportedException {
+        flacMusic = new Music(new File("/media/donnees/musiques/processed/original/sedentaire/flac/Karl Frierson - Soulprint/02 - Walkin' in New York.flac"));
+        mp3Music = new Music(new File("/home/jcnoir/Téléchargements/repet/Lady - Get Ready.mp3"));
+        wavMusic = new Music(new File("/home/jcnoir/Téléchargements/Stevie Wonder - Sir Duke.wav"));
+        oggMusic = new Music(new File("/media/donnees/musiques/processed/original/sedentaire/ogg/Kenny Werner-Effortless Mastery-01-Meditation-Exercise #1.ogg"));
+        streamingMusic = new Music(new URL("http://freewavesamples.com/files/Roland-GR-1-Trumpet-C5.wav"));
+        dataPLayer = new MusicPLayer();
+    }
 
     @Test
     public void playLocalWav() throws MalformedURLException, MediumNotSupportedException {
-
-        Music music;
-        MusicPLayer dataPLayer;
-        URL url;
-
-
-        url = this.getClass().getResource("/sounds/grapevine.wav");
-        music = new Music(url);
-        dataPLayer = new MusicPLayer();
-        dataPLayer.listen(music);
+        dataPLayer.listen(wavMusic);
     }
 
     @Test
     public void playRemoteWav() throws MalformedURLException, MediumNotSupportedException {
 
-        Music music;
-        MusicPLayer musicPLayer;
-        URL url;
+        dataPLayer.listen(streamingMusic);
+    }
 
+    @Test
+    public void playLocalMp3() throws MalformedURLException, MediumNotSupportedException {
+        dataPLayer.listen(mp3Music);
+    }
 
-        url = new URL("http://freewavesamples.com/files/Roland-GR-1-Trumpet-C5.wav");
-        music = new Music(url);
-        musicPLayer = new MusicPLayer();
-        musicPLayer.listen(music);
+    @Test
+    public void playLocalOgg() throws MalformedURLException, MediumNotSupportedException {
+        dataPLayer.listen(oggMusic);
+    }
+
+    @Test
+    public void playLocalFlac() throws MalformedURLException, MediumNotSupportedException {
+        dataPLayer.listen(flacMusic);
     }
 
     @Test
     public void playLocalWavWithIdentityFX() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
-
-        Music music;
-        MusicPLayer dataPLayer;
-        URL url;
         FxStretcher fxStretcher;
 
-
-        url = this.getClass().getResource("/sounds/grapevine.wav");
-        music = new Music(url);
-        fxStretcher = new FxStretcher(music);
+        fxStretcher = new FxStretcher(wavMusic);
         fxStretcher.setSpeed(1);
         fxStretcher.setPitch(1);
 
@@ -70,17 +77,11 @@ public class TestMusicPlayer {
     @Test
     public void playLocalWavWithSpeed() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
 
-        Music music;
-        MusicPLayer dataPLayer;
-        URL url;
         FxStretcher fxStretcher;
 
 
-        url = this.getClass().getResource("/sounds/grapevine.wav");
-        url = new File("/home/jcnoir/Téléchargements/Karl Frierson-Soulprint-02-Walkin' in New York.wav").toURL();
-        music = new Music(url);
-        fxStretcher = new FxStretcher(music);
-        fxStretcher.setSpeed(1.1);
+        fxStretcher = new FxStretcher(mp3Music);
+        fxStretcher.setSpeed(1.5);
         fxStretcher.setPitch(1);
 
         dataPLayer = new MusicPLayer();
@@ -92,16 +93,9 @@ public class TestMusicPlayer {
     @Test
     public void playLocalWavWithPitch() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
 
-        Music music;
-        MusicPLayer dataPLayer;
-        URL url;
         FxStretcher fxStretcher;
 
-
-        url = this.getClass().getResource("/sounds/grapevine.wav");
-        url = new File("/home/jcnoir/Téléchargements/Karl Frierson-Soulprint-02-Walkin' in New York.wav").toURL();
-        music = new Music(url);
-        fxStretcher = new FxStretcher(music);
+        fxStretcher = new FxStretcher(wavMusic);
         fxStretcher.setSpeed(1);
         fxStretcher.setPitch(0.8);
 

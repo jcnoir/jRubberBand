@@ -7,7 +7,9 @@ import org.black.jtranscribe.dsp.common.Stretcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -48,7 +50,13 @@ public class FxStretcher implements Stretcher {
             this.originalInputStream = data.getMusic();
             this.pipedInputStream = new PipedInputStream();
             this.pipedOutputStream = new PipedOutputStream(pipedInputStream);
-            this.fxInputStream = new AudioInputStream(pipedInputStream, originalInputStream.getFormat(), originalInputStream.getFrameLength() * 10);
+            AudioFormat sourceFormat = originalInputStream.getFormat();
+            AudioFormat decodedFormat = new AudioFormat(
+                    AudioFormat.Encoding.PCM_SIGNED,
+                    sourceFormat.getSampleRate(), 16, sourceFormat.getChannels(),
+                    sourceFormat.getChannels() * 2, sourceFormat.getSampleRate(),
+                    false);
+            this.originalInputStream = AudioSystem.getAudioInputStream(decodedFormat, originalInputStream);
             this.rubberBand = new RubberBandStretcher((int) originalInputStream.getFormat().getSampleRate(), originalInputStream.getFormat().getChannels(),
                     RubberBandStretcher.OptionProcessRealTime |
                             RubberBandStretcher.OptionStretchPrecise |
@@ -63,6 +71,7 @@ public class FxStretcher implements Stretcher {
                             RubberBandStretcher.OptionChannelsTogether
                     , 1, 1
             );
+            this.fxInputStream = new AudioInputStream(pipedInputStream, originalInputStream.getFormat(),originalInputStream.getFrameLength());
             rubberBand.reset();
             process();
         } catch (IOException e) {
@@ -150,7 +159,7 @@ public class FxStretcher implements Stretcher {
                         log.debug("Rubberband required samples={}", requiredSamples);
                         log.debug("{} bytes have been read from original stream", read);
                         log.info("Processing data with speed={}, pitch={}", rubberBand.getTimeRatio(), rubberBand.getPitchScale());
-                        process(originalStreamBuffer, originalInputStream.available() < 1, 0, read);
+                        process(originalStreamBuffer, false, 0, read);
                         processedBytes = retrieve(originalInputStream.getFormat().getChannels(), 0, available());
                         pipedOutputStream.write(processedBytes);
                         pipedOutputStream.flush();

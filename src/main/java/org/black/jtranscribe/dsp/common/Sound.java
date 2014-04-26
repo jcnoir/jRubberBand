@@ -8,7 +8,10 @@ package org.black.jtranscribe.dsp.common;/*
  * This class provides sound capabilities to the program
  */
 
+import javax.sound.sampled.AudioFormat;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 
 public class Sound {
 
@@ -46,7 +49,7 @@ public class Sound {
 
         for (int i = 0; i < floats[0].length * floats.length; i = i + floats.length) {
             for (int channel = 0; channel < floats.length; channel++) {
-                stereo[i+channel] = floats[channel][i/floats.length];
+                stereo[i + channel] = floats[channel][i / floats.length];
             }
         }
 
@@ -80,6 +83,16 @@ public class Sound {
 
         return f;
 
+    }
+
+    static float[] byteToFloatArray2(byte[] in, AudioFormat format) {
+
+        ByteBuffer byteBuffer = ByteBuffer.wrap(in);
+        //byteBuffer.order(format.isBigEndian() ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN);
+        FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
+        float[] b = new float[floatBuffer.remaining()];
+        floatBuffer.get(b, 0, b.length);
+        return b;
     }
 
     /**
