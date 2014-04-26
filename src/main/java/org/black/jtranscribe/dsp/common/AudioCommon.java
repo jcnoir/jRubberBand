@@ -543,16 +543,20 @@ public class AudioCommon {
     public static float[][] convertBeforeFx(byte[] bytes, AudioFormat format) {
 
 
-        float[] interleavedFloats = Sound.byteToFloatArray(bytes, bytes.length);
-        float[][] floats = Sound.stereoToMono(interleavedFloats, interleavedFloats.length);
+        float[] interleavedFloats = Sound.byteToFloatArray(bytes);
+        float[][] floats = Sound.stereoToMono(interleavedFloats);
         return floats;
 
     }
 
     public static byte[] convertAfterFx(float[][] floatChannels, AudioFormat format, int actualRetrieved) {
 
-        float[] interleavedFloats = Sound.monoToStereo(Arrays.copyOf(floatChannels[0], actualRetrieved), Arrays.copyOf(floatChannels[1], actualRetrieved), actualRetrieved);
-        return Sound.floatToByteArray(interleavedFloats, interleavedFloats.length);
+        for (int channel = 0; channel < floatChannels.length; channel++) {
+            floatChannels[channel] = (Arrays.copyOf(floatChannels[channel], actualRetrieved));
+        }
+
+        float[] interleavedFloats = Sound.monoToStereo(floatChannels);
+        return Sound.floatToByteArray(interleavedFloats);
 
 
     }

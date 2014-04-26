@@ -77,7 +77,7 @@ public class TestMusicPlayer {
 
 
         url = this.getClass().getResource("/sounds/grapevine.wav");
-        //url = new File("/home/jcnoir/Téléchargements/Karl Frierson - Walkin In New York.wav").toURL();
+        url = new File("/home/jcnoir/Téléchargements/Karl Frierson-Soulprint-02-Walkin' in New York.wav").toURL();
         music = new Music(url);
         fxStretcher = new FxStretcher(music);
         fxStretcher.setSpeed(1.1);
@@ -99,7 +99,7 @@ public class TestMusicPlayer {
 
 
         url = this.getClass().getResource("/sounds/grapevine.wav");
-        //url = new File("/home/jcnoir/Téléchargements/Karl Frierson - Walkin In New York.wav").toURL();
+        url = new File("/home/jcnoir/Téléchargements/Karl Frierson-Soulprint-02-Walkin' in New York.wav").toURL();
         music = new Music(url);
         fxStretcher = new FxStretcher(music);
         fxStretcher.setSpeed(1);

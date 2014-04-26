@@ -16,15 +16,14 @@ public class Sound {
     /**
      * This class turns an interleaved stereo file into two mono files
      *
-     * @param in   interleaved stereo float array
-     * @param size the size of the array
+     * @param in interleaved stereo float array
      * @return a Doubleton which contains two float arrays for left & right channels
      */
-    static float[][] stereoToMono(float[] in, int size) {
+    static float[][] stereoToMono(float[] in) {
 
-        float[][] floats = new float[2][size / 2];
+        float[][] floats = new float[2][in.length / 2];
 
-        for (int i = 0; i < size; i = i + 2) {
+        for (int i = 0; i < in.length; i = i + 2) {
 
             floats[0][i / 2] = in[i];
             floats[1][i / 2] = in[i + 1];
@@ -39,19 +38,16 @@ public class Sound {
      * This performs the exact opposite of stereoToMono.  It turns two mono files
      * into an interleaved stereo file.
      *
-     * @param left  float array
-     * @param right float array
-     * @param size  size of each array
      * @return an interleaved stereo file
      */
-    static float[] monoToStereo(float[] left, float[] right, int size) {
+    static float[] monoToStereo(float[][] floats) {
 
-        float[] stereo = new float[size * 2];
+        float[] stereo = new float[floats[0].length * floats.length];
 
-        for (int i = 0; i < size * 2; i = i + 2) {
-            stereo[i] = left[i / 2];
-            stereo[i + 1] = right[i / 2];
-
+        for (int i = 0; i < floats[0].length * floats.length; i = i + floats.length) {
+            for (int channel = 0; channel < floats.length; channel++) {
+                stereo[i+channel] = floats[channel][i/floats.length];
+            }
         }
 
         return stereo;
@@ -63,17 +59,16 @@ public class Sound {
     /**
      * This function turns a byte array into a float array.
      *
-     * @param in   the byte array
-     * @param size size of array
+     * @param in the byte array
      * @return the float array
      */
-    static float[] byteToFloatArray(byte[] in, int size) {
+    static float[] byteToFloatArray(byte[] in) {
 
-        float[] f = new float[size / 2];
+        float[] f = new float[in.length / 2];
         byte[] sampleByteArray = new byte[2];
         int sample;
 
-        for (int i = 0; i < size - 1; i = i + 2) {
+        for (int i = 0; i < in.length - 1; i = i + 2) {
             sampleByteArray[0] = in[i + 1];
             sampleByteArray[1] = in[i];
 
@@ -91,17 +86,16 @@ public class Sound {
      * This function turns a float array into a byte array so that Java can recognize it.
      * This was one of the most complicated methods as it required bit twiddling
      *
-     * @param in   the float array
-     * @param size size of array
+     * @param in the float array
      * @return the byte array
      */
-    static byte[] floatToByteArray(float[] in, int size) {
-        byte[] b = new byte[size * 2];
+    static byte[] floatToByteArray(float[] in) {
+        byte[] b = new byte[in.length * 2];
         byte[] sampleByteArray = new byte[2];
         byte[] tempSampleArray;
         int sample;
 
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < in.length; i++) {
 
             tempSampleArray = (new BigInteger(new Integer((int) in[i]).toString())).toByteArray();
 
