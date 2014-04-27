@@ -20,7 +20,7 @@ public class TestMusicPlayer {
     public static final String WAV_AUDIO_PATH = "/home/jcnoir/Téléchargements/Stevie Wonder - Sir Duke.wav";
     private Music music;
     private MusicPLayer dataPLayer;
-
+    Stretcher fxStretcher;
 
     public TestMusicPlayer() throws MalformedURLException, MediumNotSupportedException {
         dataPLayer = new MusicPLayer();
@@ -59,40 +59,35 @@ public class TestMusicPlayer {
 
     @Test
     public void playLocalWavWithIdentityFX() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
-        FxStretcher fxStretcher;
         music = new Music(new File(WAV_AUDIO_PATH));
         fxStretcher = new FxStretcher(music);
         fxStretcher.setSpeed(1);
         fxStretcher.setPitch(1);
         dataPLayer = new MusicPLayer();
         dataPLayer.listen(fxStretcher);
-        fxStretcher.exit();
     }
 
     @Test
     public void playLocalWavWithSpeed() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
 
-        FxStretcher fxStretcher;
         music = new Music(new File(WAV_AUDIO_PATH));
         fxStretcher = new FxStretcher(music);
-        fxStretcher.setSpeed(1.5);
+        fxStretcher.setSpeed(0.3);
         fxStretcher.setPitch(1);
         dataPLayer = new MusicPLayer();
         dataPLayer.listen(fxStretcher);
-        fxStretcher.exit();
     }
 
     @Test
     public void playLocalWavWithPitch() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
 
-        FxStretcher fxStretcher;
         music = new Music(new File(WAV_AUDIO_PATH));
         fxStretcher = new FxStretcher(music);
         fxStretcher.setSpeed(1);
         fxStretcher.setPitch(0.8);
         dataPLayer = new MusicPLayer();
         dataPLayer.listen(fxStretcher);
-        fxStretcher.exit();
+
     }
 
 

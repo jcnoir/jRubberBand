@@ -55,4 +55,15 @@ public class Music implements MusicProvider {
     public AudioInputStream getMusic() {
         return getAudioInputStream();  //To change body of implemented methods use File | Settings | File Templates.
     }
+
+    @Override
+    public void close() {
+        try {
+            log.debug("Closing resources ...");
+            audioInputStream.close();
+            log.debug("Closing resources done");
+        } catch (IOException e) {
+            log.warn("Audio stream close failure : {}", e);
+        }
+    }
 }

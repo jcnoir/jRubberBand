@@ -71,7 +71,7 @@ public class FxStretcher implements Stretcher {
                             RubberBandStretcher.OptionChannelsTogether
                     , 1, 1
             );
-            this.fxInputStream = new AudioInputStream(pipedInputStream, originalInputStream.getFormat(),originalInputStream.getFrameLength());
+            this.fxInputStream = new AudioInputStream(pipedInputStream, originalInputStream.getFormat(), originalInputStream.getFrameLength());
             rubberBand.reset();
             process();
         } catch (IOException e) {
@@ -82,6 +82,42 @@ public class FxStretcher implements Stretcher {
     @Override
     public AudioInputStream getMusic() {
         return this.fxInputStream;
+    }
+
+    @Override
+    public void close() {
+
+        log.debug("Closing resources ...");
+
+        executorService.shutdown();
+        rubberBand.dispose();
+
+        try {
+            originalInputStream.close();
+        } catch (IOException e) {
+            log.warn("Stream close failure : {}", e);
+        }
+
+        try {
+            fxInputStream.close();
+        } catch (IOException e) {
+            log.warn("Stream close failure : {}", e);
+        }
+
+        try {
+            pipedInputStream.close();
+        } catch (IOException e) {
+            log.warn("Stream close failure : {}", e);
+        }
+
+        try {
+            pipedOutputStream.close();
+        } catch (IOException e) {
+            log.warn("Stream close failure : {}", e);
+        }
+
+        log.debug("Closing resources done");
+
     }
 
     @Override
@@ -171,9 +207,5 @@ public class FxStretcher implements Stretcher {
         });
 
 
-    }
-
-    public void exit() {
-        this.rubberBand.dispose();
     }
 }

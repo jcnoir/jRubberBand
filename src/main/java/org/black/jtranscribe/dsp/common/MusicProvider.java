@@ -9,4 +9,7 @@ import javax.sound.sampled.AudioInputStream;
 public interface MusicProvider extends MusicHandler {
 
     public AudioInputStream getMusic();
+
+    public void close();
+
 }

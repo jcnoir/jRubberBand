@@ -3,6 +3,8 @@ package org.black.jtranscribe.dsp.player;
 import org.black.jtranscribe.dsp.common.AudioCommon;
 import org.black.jtranscribe.dsp.common.MusicConsumer;
 import org.black.jtranscribe.dsp.common.MusicProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.SourceDataLine;
@@ -16,14 +18,19 @@ public class MusicPLayer implements MusicConsumer {
 
     private static int DEFAULT_EXTERNAL_BUFFER_SIZE = 128000;
 
-    private String strMixerName;
-    int nInternalBufferSize = AudioSystem.NOT_SPECIFIED;
-    int nExternalBufferSize = DEFAULT_EXTERNAL_BUFFER_SIZE;
+    private static final Logger log = LoggerFactory.getLogger(MusicPLayer.class);
+
+    private String mixer;
+    int internalBufferSize = AudioSystem.NOT_SPECIFIED;
+    int externalBufferSize = DEFAULT_EXTERNAL_BUFFER_SIZE;
 
 
     @Override
     public void listen(MusicProvider data) {
-        SourceDataLine line = AudioCommon.getSourceDataLine(strMixerName, data.getMusic().getFormat(), nInternalBufferSize);
+
+        log.debug("Starting music provider read ...");
+
+        SourceDataLine line = AudioCommon.getSourceDataLine(mixer, data.getMusic().getFormat(), internalBufferSize);
 
 
         /*
@@ -44,16 +51,21 @@ public class MusicPLayer implements MusicConsumer {
            *	return value of -1 from the read method of the
            *	AudioInputStream.
            */
-        int nBytesRead = 0;
-        byte[] abData = new byte[nExternalBufferSize];
-        while (nBytesRead != -1) {
+
+
+        log.debug("Audio line configured, reading data stream ...");
+
+
+        int readBytes = 0;
+        byte[] buffer = new byte[externalBufferSize];
+        while (readBytes != -1) {
             try {
-                nBytesRead = data.getMusic().read(abData, 0, abData.length);
+                readBytes = data.getMusic().read(buffer, 0, buffer.length);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("Audio stream read failure : {}", e);
             }
-            if (nBytesRead >= 0) {
-                int nBytesWritten = line.write(abData, 0, nBytesRead);
+            if (readBytes >= 0) {
+                int writtenBytes = line.write(buffer, 0, readBytes);
             }
         }
 
@@ -67,11 +79,19 @@ public class MusicPLayer implements MusicConsumer {
            *	Thanks to Margie Fitch for bringing me on the right
            *	path to this solution.
            */
+
+        log.debug("Data stream read is over ...");
+
         line.drain();
 
         /*
            *	All data are played. We can close the shop.
            */
         line.close();
+
+        data.close();
+
+        log.debug("Data stream resources closed");
+
     }
 }
