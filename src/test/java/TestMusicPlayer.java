@@ -17,60 +17,55 @@ import java.net.URL;
  */
 public class TestMusicPlayer {
     private static final Logger log = LoggerFactory.getLogger(Stretcher.class);
-    private final Music streamingMusic;
-    private Music flacMusic;
-    private Music mp3Music;
-    private Music wavMusic;
-    private Music oggMusic;
+    public static final String WAV_AUDIO_PATH = "/home/jcnoir/Téléchargements/Stevie Wonder - Sir Duke.wav";
+    private Music music;
     private MusicPLayer dataPLayer;
 
 
     public TestMusicPlayer() throws MalformedURLException, MediumNotSupportedException {
-        flacMusic = new Music(new File("/media/donnees/musiques/processed/original/sedentaire/flac/Karl Frierson - Soulprint/02 - Walkin' in New York.flac"));
-        mp3Music = new Music(new File("/home/jcnoir/Téléchargements/repet/Lady - Get Ready.mp3"));
-        wavMusic = new Music(new File("/home/jcnoir/Téléchargements/Stevie Wonder - Sir Duke.wav"));
-        oggMusic = new Music(new File("/media/donnees/musiques/processed/original/sedentaire/ogg/Kenny Werner-Effortless Mastery-01-Meditation-Exercise #1.ogg"));
-        streamingMusic = new Music(new URL("http://freewavesamples.com/files/Roland-GR-1-Trumpet-C5.wav"));
         dataPLayer = new MusicPLayer();
     }
 
     @Test
     public void playLocalWav() throws MalformedURLException, MediumNotSupportedException {
-        dataPLayer.listen(wavMusic);
+        music = new Music(new File(WAV_AUDIO_PATH));
+        dataPLayer.listen(music);
     }
 
     @Test
     public void playRemoteWav() throws MalformedURLException, MediumNotSupportedException {
+        music = new Music(new URL("http://freewavesamples.com/files/Roland-GR-1-Trumpet-C5.wav"));
 
-        dataPLayer.listen(streamingMusic);
+        dataPLayer.listen(music);
     }
 
     @Test
     public void playLocalMp3() throws MalformedURLException, MediumNotSupportedException {
-        dataPLayer.listen(mp3Music);
+        music = new Music(new File("/home/jcnoir/Téléchargements/repet/Lady - Get Ready.mp3"));
+        dataPLayer.listen(music);
     }
 
     @Test
     public void playLocalOgg() throws MalformedURLException, MediumNotSupportedException {
-        dataPLayer.listen(oggMusic);
+        music = new Music(new File("/media/donnees/musiques/processed/original/sedentaire/ogg/Kenny Werner-Effortless Mastery-01-Meditation-Exercise #1.ogg"));
+        dataPLayer.listen(music);
     }
 
     @Test
     public void playLocalFlac() throws MalformedURLException, MediumNotSupportedException {
-        dataPLayer.listen(flacMusic);
+        music = new Music(new File("/media/donnees/musiques/processed/original/sedentaire/flac/Karl Frierson - Soulprint/02 - Walkin' in New York.flac"));
+        dataPLayer.listen(music);
     }
 
     @Test
     public void playLocalWavWithIdentityFX() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
         FxStretcher fxStretcher;
-
-        fxStretcher = new FxStretcher(wavMusic);
+        music = new Music(new File(WAV_AUDIO_PATH));
+        fxStretcher = new FxStretcher(music);
         fxStretcher.setSpeed(1);
         fxStretcher.setPitch(1);
-
         dataPLayer = new MusicPLayer();
         dataPLayer.listen(fxStretcher);
-
         fxStretcher.exit();
     }
 
@@ -78,15 +73,12 @@ public class TestMusicPlayer {
     public void playLocalWavWithSpeed() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
 
         FxStretcher fxStretcher;
-
-
-        fxStretcher = new FxStretcher(mp3Music);
+        music = new Music(new File(WAV_AUDIO_PATH));
+        fxStretcher = new FxStretcher(music);
         fxStretcher.setSpeed(1.5);
         fxStretcher.setPitch(1);
-
         dataPLayer = new MusicPLayer();
         dataPLayer.listen(fxStretcher);
-
         fxStretcher.exit();
     }
 
@@ -94,14 +86,12 @@ public class TestMusicPlayer {
     public void playLocalWavWithPitch() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
 
         FxStretcher fxStretcher;
-
-        fxStretcher = new FxStretcher(wavMusic);
+        music = new Music(new File(WAV_AUDIO_PATH));
+        fxStretcher = new FxStretcher(music);
         fxStretcher.setSpeed(1);
         fxStretcher.setPitch(0.8);
-
         dataPLayer = new MusicPLayer();
         dataPLayer.listen(fxStretcher);
-
         fxStretcher.exit();
     }
 
