@@ -3,12 +3,11 @@ package org.black.jtranscribe.dsp.fx.rubberband;
 import com.breakfastquay.rubberband.RubberBandStretcher;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import org.apache.commons.lang.time.DurationFormatUtils;
 import org.black.jtranscribe.dsp.common.AudioCommon;
 import org.black.jtranscribe.dsp.common.MusicProvider;
 import org.black.jtranscribe.dsp.common.Stretcher;
-import org.black.jtranscribe.dsp.common.command.FxMusic;
-import org.black.jtranscribe.dsp.common.command.FxSettings;
-import org.black.jtranscribe.dsp.common.command.ProcessFx;
+import org.black.jtranscribe.dsp.common.command.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +42,12 @@ public class FxStretcher implements Stretcher {
 
     private double speed = 1;
     private double pitch = 1;
+
+    private long position = 0;
+    private long loopStart = 0;
+    private long loopEnd = 0;
+    private boolean loop = false;
+
 
     public FxStretcher() {
         super();
@@ -88,6 +93,11 @@ public class FxStretcher implements Stretcher {
         } catch (IOException e) {
             log.error("Listen failure : {}", e);
         }
+    }
+
+    @Override
+    public long getPosition() {
+        return position;
     }
 
     @Override
@@ -160,16 +170,18 @@ public class FxStretcher implements Stretcher {
 
         int bytesPerSample;
         float[][] samples;
-        log.debug("Processing " + size + " interleaved bytes (last=" + last + ", offset=" + offset + ")");
+        // log.debug("Processing " + size + " interleaved bytes (last=" + last + ", offset=" + offset + ")");
         bytes = Arrays.copyOfRange(bytes, offset, size);
         samples = AudioCommon.convertBeforeFx(bytes, this.getMusic().getFormat());
         bytesPerSample = originalInputStream.getFormat().getFrameSize();
-        log.debug(bytesPerSample + " bytes per sample detected");
-        log.debug("Processing " + samples[0].length + " samples on " + samples.length + " channels " + "(last=" + last + ", offset=" + offset / bytesPerSample + ")");
-        log.debug("Rubberband channels={}", rubberBand.getChannelCount());
-        log.debug("Rubberband latency={}", rubberBand.getLatency());
+        /**
+         log.debug(bytesPerSample + " bytes per sample detected");
+         log.debug("Processing " + samples[0].length + " samples on " + samples.length + " channels " + "(last=" + last + ", offset=" + offset / bytesPerSample + ")");
+         log.debug("Rubberband channels={}", rubberBand.getChannelCount());
+         log.debug("Rubberband latency={}", rubberBand.getLatency());
+         **/
         rubberBand.process(samples, offset / bytesPerSample, size / bytesPerSample, last);
-        log.debug("Processing request done");
+        //log.debug("Processing request done");
     }
 
     /**
@@ -177,7 +189,7 @@ public class FxStretcher implements Stretcher {
      */
     public int available() {
         int available = rubberBand.available();
-        log.debug(available + " samples available from rubberband");
+        // log.debug(available + " samples available from rubberband");
         return available;
     }
 
@@ -187,9 +199,9 @@ public class FxStretcher implements Stretcher {
         int actualRetrieved;
         float[][] floats = new float[channelNumber][length];
         actualRetrieved = rubberBand.retrieve(floats, offset, length);
-        log.debug(actualRetrieved + " samples retrieved from rubberband");
+        //log.debug(actualRetrieved + " samples retrieved from rubberband");
         bytes = AudioCommon.convertAfterFx(floats, originalInputStream.getFormat(), actualRetrieved);
-        log.debug(bytes.length + " bytes after conversion retrieved from rubberband, matching bytes per sample=" + (actualRetrieved != 0 ? bytes.length / (actualRetrieved * originalInputStream.getFormat().getChannels()) : 0));
+        //log.debug(bytes.length + " bytes after conversion retrieved from rubberband, matching bytes per sample=" + (actualRetrieved != 0 ? bytes.length / (actualRetrieved * originalInputStream.getFormat().getChannels()) : 0));
         return bytes;
 
     }
@@ -203,14 +215,20 @@ public class FxStretcher implements Stretcher {
 
         try {
             log.debug("Processing audio : originalStreamBuffer=" + originalStreamBuffer.length + ", requiredSamples=" + requiredSamples);
-            originalInputStream.mark(0);
+            this.originalInputStream.mark(0);
             while ((read = originalInputStream.read(originalStreamBuffer, 0, (requiredSamples = rubberBand.getSamplesRequired()) * originalInputStream.getFormat().getFrameSize()) + 1) > 0) {
-                log.debug("Rubberband required samples={}", requiredSamples);
-                log.debug("{} bytes have been read from original stream", read);
-                log.info("Processing data with speed={}, pitch={}", rubberBand.getTimeRatio(), rubberBand.getPitchScale());
-                process(originalStreamBuffer, false, 0, read);
-                processedBytes = retrieve(originalInputStream.getFormat().getChannels(), 0, available());
-                pipedOutputStream.write(processedBytes);
+                position = position + read;
+                if (loop && position >= loopEnd) {
+                    log.info("Looping : Resetting audio stream from {} ==> {}", position, loopStart);
+                    move(loopStart);
+                } else {
+                    //log.debug("Rubberband required samples={}", requiredSamples);
+                    //log.debug("{} bytes have been read from original stream", read);
+                    //log.info("Processing data with speed={}, pitch={}", rubberBand.getTimeRatio(), rubberBand.getPitchScale());
+                    process(originalStreamBuffer, false, 0, read);
+                    processedBytes = retrieve(originalInputStream.getFormat().getChannels(), 0, available());
+                    pipedOutputStream.write(processedBytes);
+                }
             }
         } catch (Exception ex) {
             log.error("Music stream read failure", ex);
@@ -228,6 +246,54 @@ public class FxStretcher implements Stretcher {
         log.info("Stretching updated : {}", stretchUpdateCommand);
         setPitch(stretchUpdateCommand.getPitch());
         setSpeed(stretchUpdateCommand.getSpeed());
+    }
+
+    @Subscribe
+    public void mark(Mark mark) {
+        log.info("Mark : {}", position);
+        this.originalInputStream.mark(0);
+    }
+
+    @Subscribe
+    public void reset(ResetToMark resetToMark) {
+        log.info("ResetToMark");
+        try {
+            this.originalInputStream.skip(25698);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Subscribe
+    public void loop(Loop loop) {
+        log.info("Loop command received : {}", loop);
+        this.loop = loop.isLoopEnabled();
+        this.loopEnd = loop.getLoopEnd();
+        this.loopStart = loop.getLoopStart();
+    }
+
+    @Subscribe
+    public void gotoCommand(GotoCommand gotoCommand) throws IOException {
+        log.info("Goto command received : {}", gotoCommand);
+        move(gotoCommand.getFramePosition());
+    }
+
+    private void move(long position) {
+        try {
+
+            long frameNumber;
+            float time;
+
+            frameNumber = position / (originalInputStream.getFormat().getFrameSize());
+            time = frameNumber / (originalInputStream.getFormat().getFrameRate());
+
+            log.info("Moving to byte={}, frame={}, time={}", new Object[]{position, frameNumber, DurationFormatUtils.formatDurationHMS((long) (time * 1000))});
+            originalInputStream.reset();
+            originalInputStream.skip(position);
+            this.position = position;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 

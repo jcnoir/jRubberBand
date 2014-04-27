@@ -8,4 +8,6 @@ public interface MusicConsumer extends MusicHandler {
 
     public void listen(MusicProvider data);
 
+    public long getPosition();
+
 }

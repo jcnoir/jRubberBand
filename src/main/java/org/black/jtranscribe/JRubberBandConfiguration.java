@@ -13,7 +13,7 @@ import java.util.concurrent.Executors;
 public class JRubberBandConfiguration {
     @Bean
     public EventBus eventBus() {
-        return new AsyncEventBus(Executors.newFixedThreadPool(4));
+        return new AsyncEventBus(Executors.newFixedThreadPool(3));
     }
 
 }

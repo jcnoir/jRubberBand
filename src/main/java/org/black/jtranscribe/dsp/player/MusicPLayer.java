@@ -54,6 +54,7 @@ public class MusicPLayer implements MusicConsumer {
         log.debug("Starting music provider read ...");
         SourceDataLine line = AudioCommon.getSourceDataLine(mixer, data.getMusic().getFormat(), internalBufferSize);
 
+
         /*
         *	Still not enough. The line now can receive data,
         *	but will not pass them on to the audio output device
@@ -93,7 +94,7 @@ public class MusicPLayer implements MusicConsumer {
             if (readBytes >= 0) {
                 int writtenBytes = line.write(buffer, 0, readBytes);
                 readFrames = readFrames + (writtenBytes / data.getMusic().getFormat().getFrameSize());
-                log.debug("{}/{} read frames", readFrames, data.getMusic().getFrameLength());
+               // log.debug("{}/{} read frames", readFrames, data.getMusic().getFrameLength());
             }
         }
 
@@ -120,5 +121,10 @@ public class MusicPLayer implements MusicConsumer {
         data.close();
 
         log.debug("Data stream resources closed");
+    }
+
+    @Override
+    public long getPosition() {
+        return readFrames;
     }
 }

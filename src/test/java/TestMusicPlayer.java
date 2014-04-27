@@ -2,10 +2,7 @@ import com.google.common.eventbus.EventBus;
 import org.black.jtranscribe.JRubberBandConfiguration;
 import org.black.jtranscribe.data.Music;
 import org.black.jtranscribe.dsp.common.Stretcher;
-import org.black.jtranscribe.dsp.common.command.Navigation;
-import org.black.jtranscribe.dsp.common.command.FxMusic;
-import org.black.jtranscribe.dsp.common.command.FxSettings;
-import org.black.jtranscribe.dsp.common.command.ProcessFx;
+import org.black.jtranscribe.dsp.common.command.*;
 import org.black.jtranscribe.exceptions.MediumNotSupportedException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,6 +31,8 @@ public class TestMusicPlayer {
     EventBus bus;
     @Autowired
     Music music;
+    @Autowired
+    Stretcher stretcher;
 
     @Test
     public void playLocalWav() throws MalformedURLException, MediumNotSupportedException {
@@ -86,6 +85,12 @@ public class TestMusicPlayer {
     public void playLocalWavWithIdentityFX() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
         getMusic((WAV_AUDIO_PATH));
         bus.post(new FxMusic(music));
+        Thread.sleep(1000 * 10);
+        bus.post(new Mark());
+        Thread.sleep(1000 * 10);
+        bus.post(new ResetToMark());
+        Thread.sleep(1000 * 10);
+
     }
 
     @Test
@@ -125,5 +130,22 @@ public class TestMusicPlayer {
         return music;
     }
 
+    @Test
+    public void loop() throws MalformedURLException, MediumNotSupportedException, InterruptedException {
+        long start;
+        long end;
+        getMusic((WAV_AUDIO_PATH));
+        bus.post(new FxMusic(music));
+        bus.post(new FxSettings(1, 1));
+
+        Thread.sleep(1000 * 5);
+        start = stretcher.getPosition();
+        Thread.sleep(1000 * 5);
+        end = stretcher.getPosition();
+        bus.post(new Loop(start, end, true));
+        Thread.sleep(1000 * 30);
+        bus.post(new Loop(start, end, false));
+        Thread.sleep(1000 * 30);
+    }
 
 }
