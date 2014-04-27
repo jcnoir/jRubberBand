@@ -1,12 +1,20 @@
 package org.black.jtranscribe.dsp.fx.rubberband;
 
 import com.breakfastquay.rubberband.RubberBandStretcher;
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import org.black.jtranscribe.dsp.common.AudioCommon;
 import org.black.jtranscribe.dsp.common.MusicProvider;
 import org.black.jtranscribe.dsp.common.Stretcher;
+import org.black.jtranscribe.dsp.common.command.FxMusic;
+import org.black.jtranscribe.dsp.common.command.FxSettings;
+import org.black.jtranscribe.dsp.common.command.ProcessFx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -14,17 +22,17 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * User: jcnoir
  * Date: 15/07/12
  */
+@Component
 public class FxStretcher implements Stretcher {
 
     private static final Logger log = LoggerFactory.getLogger(Stretcher.class);
-
+    @Autowired
+    private EventBus bus;
     private AudioInputStream originalInputStream;
     private AudioInputStream fxInputStream;
 
@@ -33,15 +41,16 @@ public class FxStretcher implements Stretcher {
 
     private RubberBandStretcher rubberBand;
 
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private double speed = 1;
+    private double pitch = 1;
 
     public FxStretcher() {
         super();
     }
 
-    public FxStretcher(MusicProvider musicProvider) {
-        this();
-        this.listen(musicProvider);
+    @PostConstruct
+    private void init() {
+        bus.register(this);
     }
 
     @Override
@@ -69,11 +78,13 @@ public class FxStretcher implements Stretcher {
                             RubberBandStretcher.OptionFormantShifted |
                             RubberBandStretcher.OptionPitchHighQuality |
                             RubberBandStretcher.OptionChannelsTogether
-                    , 1, 1
+                    , speed, pitch
             );
             this.fxInputStream = new AudioInputStream(pipedInputStream, originalInputStream.getFormat(), originalInputStream.getFrameLength());
             rubberBand.reset();
-            process();
+            //Notify the music player to listen to the output of the stretcher.
+            bus.post(this);
+            bus.post(new ProcessFx());
         } catch (IOException e) {
             log.error("Listen failure : {}", e);
         }
@@ -88,8 +99,6 @@ public class FxStretcher implements Stretcher {
     public void close() {
 
         log.debug("Closing resources ...");
-
-        executorService.shutdown();
         rubberBand.dispose();
 
         try {
@@ -122,22 +131,28 @@ public class FxStretcher implements Stretcher {
 
     @Override
     public double getSpeed() {
-        return rubberBand.getTimeRatio();
+        return speed;
     }
 
     @Override
     public void setSpeed(double speed) {
-        rubberBand.setTimeRatio(speed);
+        this.speed = speed;
+        if (rubberBand != null) {
+            rubberBand.setTimeRatio(speed);
+        }
     }
 
     @Override
     public double getPitch() {
-        return rubberBand.getPitchScale();
+        return pitch;
     }
 
     @Override
     public void setPitch(double pitch) {
-        rubberBand.setPitchScale(pitch);
+        this.pitch = pitch;
+        if (rubberBand != null) {
+            rubberBand.setPitchScale(pitch);
+        }
     }
 
 
@@ -179,33 +194,41 @@ public class FxStretcher implements Stretcher {
 
     }
 
-    private void process() {
+    @Subscribe
+    public void process(ProcessFx processFx) {
+        byte[] originalStreamBuffer = new byte[rubberBand.getSamplesRequired() * originalInputStream.getFormat().getFrameSize()];
+        byte[] processedBytes;
+        int read;
+        int requiredSamples = rubberBand.getSamplesRequired();
 
-        executorService.submit(new Runnable() {
-            @Override
-            public void run() {
-                byte[] originalStreamBuffer = new byte[rubberBand.getSamplesRequired() * originalInputStream.getFormat().getFrameSize()];
-                byte[] processedBytes;
-                int read;
-                int requiredSamples = rubberBand.getSamplesRequired();
-
-                try {
-                    log.debug("Processing audio : originalStreamBuffer=" + originalStreamBuffer.length + ", requiredSamples=" + requiredSamples);
-                    while ((read = originalInputStream.read(originalStreamBuffer, 0, (requiredSamples = rubberBand.getSamplesRequired()) * originalInputStream.getFormat().getFrameSize()) + 1) > 0) {
-                        log.debug("Rubberband required samples={}", requiredSamples);
-                        log.debug("{} bytes have been read from original stream", read);
-                        log.info("Processing data with speed={}, pitch={}", rubberBand.getTimeRatio(), rubberBand.getPitchScale());
-                        process(originalStreamBuffer, false, 0, read);
-                        processedBytes = retrieve(originalInputStream.getFormat().getChannels(), 0, available());
-                        pipedOutputStream.write(processedBytes);
-                        pipedOutputStream.flush();
-                    }
-                } catch (Exception ex) {
-                    log.error("Music stream read failure", ex);
-                }
+        try {
+            log.debug("Processing audio : originalStreamBuffer=" + originalStreamBuffer.length + ", requiredSamples=" + requiredSamples);
+            originalInputStream.mark(0);
+            while ((read = originalInputStream.read(originalStreamBuffer, 0, (requiredSamples = rubberBand.getSamplesRequired()) * originalInputStream.getFormat().getFrameSize()) + 1) > 0) {
+                log.debug("Rubberband required samples={}", requiredSamples);
+                log.debug("{} bytes have been read from original stream", read);
+                log.info("Processing data with speed={}, pitch={}", rubberBand.getTimeRatio(), rubberBand.getPitchScale());
+                process(originalStreamBuffer, false, 0, read);
+                processedBytes = retrieve(originalInputStream.getFormat().getChannels(), 0, available());
+                pipedOutputStream.write(processedBytes);
             }
-        });
-
-
+        } catch (Exception ex) {
+            log.error("Music stream read failure", ex);
+        }
     }
+
+    @Subscribe
+    public void stretch(FxMusic fxMusic) {
+        log.info("Stretching resource : {}", fxMusic.getMusicProvider());
+        this.listen(fxMusic.getMusicProvider());
+    }
+
+    @Subscribe
+    public void updateStretch(FxSettings stretchUpdateCommand) {
+        log.info("Stretching updated : {}", stretchUpdateCommand);
+        setPitch(stretchUpdateCommand.getPitch());
+        setSpeed(stretchUpdateCommand.getSpeed());
+    }
+
+
 }

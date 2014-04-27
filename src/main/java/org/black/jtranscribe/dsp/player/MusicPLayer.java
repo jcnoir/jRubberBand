@@ -1,11 +1,17 @@
 package org.black.jtranscribe.dsp.player;
 
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import org.black.jtranscribe.dsp.common.AudioCommon;
 import org.black.jtranscribe.dsp.common.MusicConsumer;
 import org.black.jtranscribe.dsp.common.MusicProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.SourceDataLine;
 import java.io.IOException;
@@ -14,7 +20,11 @@ import java.io.IOException;
  * User: jcnoir
  * Date: 15/07/12
  */
+@Component
 public class MusicPLayer implements MusicConsumer {
+
+    @Autowired
+    private EventBus eventBus;
 
     private static int DEFAULT_EXTERNAL_BUFFER_SIZE = 128000;
 
@@ -24,14 +34,25 @@ public class MusicPLayer implements MusicConsumer {
     int internalBufferSize = AudioSystem.NOT_SPECIFIED;
     int externalBufferSize = DEFAULT_EXTERNAL_BUFFER_SIZE;
 
+    private long startFrame = 0;
+    private long readFrames = 0;
+
+    private AudioInputStream inputStream;
+
+    public MusicPLayer() {
+    }
+
+    @PostConstruct
+    private void init() {
+        eventBus.register(this);
+    }
 
     @Override
+    @Subscribe
     public void listen(MusicProvider data) {
-
+        inputStream = data.getMusic();
         log.debug("Starting music provider read ...");
-
         SourceDataLine line = AudioCommon.getSourceDataLine(mixer, data.getMusic().getFormat(), internalBufferSize);
-
 
         /*
         *	Still not enough. The line now can receive data,
@@ -55,9 +76,14 @@ public class MusicPLayer implements MusicConsumer {
 
         log.debug("Audio line configured, reading data stream ...");
 
+        log.debug("Music length = {} frames", data.getMusic().getFrameLength());
 
         int readBytes = 0;
+        externalBufferSize = (data.getMusic().getFormat().getSampleSizeInBits() / 8) * 44100 * 2;
         byte[] buffer = new byte[externalBufferSize];
+
+        log.debug("Stream length in frames : " + data.getMusic().getFrameLength());
+
         while (readBytes != -1) {
             try {
                 readBytes = data.getMusic().read(buffer, 0, buffer.length);
@@ -66,6 +92,8 @@ public class MusicPLayer implements MusicConsumer {
             }
             if (readBytes >= 0) {
                 int writtenBytes = line.write(buffer, 0, readBytes);
+                readFrames = readFrames + (writtenBytes / data.getMusic().getFormat().getFrameSize());
+                log.debug("{}/{} read frames", readFrames, data.getMusic().getFrameLength());
             }
         }
 
@@ -92,6 +120,5 @@ public class MusicPLayer implements MusicConsumer {
         data.close();
 
         log.debug("Data stream resources closed");
-
     }
 }
